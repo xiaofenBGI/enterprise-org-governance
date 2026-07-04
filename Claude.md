@@ -39,15 +39,15 @@ org-tree-frontend/
 │   │   └── EntityMaster.vue      # P1: 实体主数据，已完成
 │   ├── components/
 │   │   ├── OrgTree.vue           # 组织树组件，已完成
-│   │   ├── DiffViewer.vue        # 变更前后对比
-│   │   └── ValidationResult.vue  # 校验结果展示
+│   │   ├── DiffViewer.vue        # 变更前后对比，已完成
+│   │   └── ValidationResult.vue  # 校验结果展示，已完成
 │   ├── mock/
 │   │   ├── orgData.ts            # mock 组织数据，已完成
 │   │   └── validationRules.ts    # mock 校验规则，已完成
 │   ├── types/
 │   │   └── index.ts              # TypeScript 类型定义， 已完成
 │   ├── utils/
-│   │   └── treeBuilder.ts        # 工具函数 根据指定日期和树类型构建树结构，已完成
+│   │   └── treeBuilder.ts        # 根据指定日期和树类型构建树结构，已完成
 │   ├── router/
 │   │   └── index.ts              # 已完成
 │   ├── styles/
@@ -182,7 +182,7 @@ DiffViewer.vue 组件实现了：
 - ✅ **OrgAdjustment.vue**（组织调整）- 提交变更时调用校验
 - ✅ **Reconciliation.vue**（监控对账）- 对账报告中调用健康检查
 - ✅ **EntityMaster.vue**（实体主数据）- 状态校验
-## 待完成  实现的组件 ValidationResult.vue
+## 已完成  实现的组件 ValidationResult.vue
 alidationResult.vue 组件会被以下模块调用
 1. OrgAdjustment.vue（组织调整）✅ 已存在
 调用场景: 提交变更时显示校验结果
@@ -203,11 +203,23 @@ alidationResult.vue 组件会被以下模块调用
 第二步：重构 OrgAdjustment.vue  --已完成
 删除内联的校验结果代码
 改用 <ValidationResult :validation-result="validationResult" />
-第三步：补充 Reconciliation.vue
-在对账报告中导入并使用 ValidationResult.vue
-第四步：补充 EntityMaster.vue
-在实体状态校验中导入并使用 ValidationResult.vue
+第三步：补充 Reconciliation.vue --已完成
+Reconciliation.vue 现在可以：
 
+✅ 手动触发健康检查（调用校验引擎）
+✅ 使用 ValidationResult 组件展示校验结果
+✅ 展示孤悬节点、时态断裂、游离实体等问题
+✅ 提供问题详情和受影响实体列表
+第四步：补充 EntityMaster.vue --已完成
+EntityMaster.vue 现在可以：
+
+✅ 新增实体时自动校验（游离实体警告）
+✅ 实体详情中运行健康检查
+✅ 使用 ValidationResult 组件展示校验结果
+✅ 检测游离实体、单树独有等问题
+
+
+## 待完成 
 
 
 ## 关键约定

@@ -319,7 +319,7 @@ import type {
   ChangeRequest,
   ChangeOperationType,
   TreeType,
-  ValidationResult,
+  ValidationResultType,
   OrgEntity
 } from '@/types'
 import { TREE_TYPE_LABELS } from '@/types'
@@ -337,9 +337,9 @@ const formRef = ref<FormInstance>()
 
 const pendingRequests = ref<ChangeRequest[]>([])
 const diffPreview = ref<any>(null)
-const validationResult = ref<ValidationResult | null>(null)
+const validationResult = ref<ValidationResultType | null>(null)
 const currentApprovalRequest = ref<ChangeRequest | null>(null)
-const approvalValidation = ref<ValidationResult | null>(null)
+const approvalValidation = ref<ValidationResultType | null>(null)
 const rejectReason = ref('')
 
 const newRequest = reactive({

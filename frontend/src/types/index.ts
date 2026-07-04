@@ -160,3 +160,7 @@ export interface ReconReport {
   differences: ReconDifference[]
   createdAt: string
 }
+
+// ✅ 添加类型别名，避免与 Vue 组件命名冲突
+export type ValidationResultType = ValidationResult
+
