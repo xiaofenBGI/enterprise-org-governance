@@ -197,10 +197,10 @@ alidationResult.vue 组件会被以下模块调用
 当前状态: 需要补充校验结果展示
 影响: 需要导入并使用 ValidationResult.vue
 实施步骤
-第一步：创建 ValidationResult.vue 组件
+第一步：创建 ValidationResult.vue 组件 -- 已完成
 从 OrgAdjustment.vue 中提取校验结果展示逻辑
 封装成独立、可复用的组件
-第二步：重构 OrgAdjustment.vue
+第二步：重构 OrgAdjustment.vue  --已完成
 删除内联的校验结果代码
 改用 <ValidationResult :validation-result="validationResult" />
 第三步：补充 Reconciliation.vue

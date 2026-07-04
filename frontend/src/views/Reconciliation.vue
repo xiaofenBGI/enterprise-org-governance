@@ -46,11 +46,20 @@
       </el-row>
 
       <div style="margin-top: 20px; text-align: right">
+        <el-button type="primary" @click="runHealthCheck">
+          运行健康检查
+        </el-button>
         <el-button type="primary" @click="showTriggerDialog = true">
           手动触发对账
         </el-button>
         <el-button @click="loadReport">刷新报告</el-button>
       </div>
+    </div>
+
+    <!-- 健康检查结果 -->
+    <div v-if="validationResult" class="page-card validation-section">
+      <h3>健康检查结果</h3>
+      <ValidationResult :validation-result="validationResult" />
     </div>
 
     <!-- 差异分类汇总 -->
@@ -319,7 +328,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
-import dayjs from 'dayjs'
+import ValidationResult from '@/components/ValidationResult.vue'
+import type { ValidationResultType } from '@/types'
 
 const router = useRouter()
 
@@ -330,6 +340,9 @@ const detailLoading = ref(false)
 const triggering = ref(false)
 const currentCategory = ref('')
 const currentCategoryName = ref('')
+
+// 校验结果数据
+const validationResult = ref<ValidationResultType | null>(null)
 
 const stats = reactive({
   totalEntities: 245,
@@ -386,6 +399,47 @@ function getScoreColor(score: number) {
 function loadReport() {
   // Mock: 加载最新对账报告
   ElMessage.success('对账报告已刷新')
+}
+
+/**
+ * 运行健康检查 - 调用校验引擎
+ */
+function runHealthCheck() {
+  ElMessage.info('正在运行健康检查...')
+
+  // Mock: 模拟调用校验引擎
+  setTimeout(() => {
+    validationResult.value = {
+      passed: false,
+      errors: [
+        {
+          ruleId: 'NO_ORPHAN_NODES',
+          ruleName: '不允许孤悬节点',
+          message: '发现 2 个孤悬节点',
+          level: 'HARD',
+          affectedEntities: ['华南分公司', '东北办事处']
+        },
+        {
+          ruleId: 'NO_TEMPORAL_GAP',
+          ruleName: '时态连续性',
+          message: '发现 3 处时态断裂',
+          level: 'HARD',
+          affectedEntities: ['西南子公司', '华北分公司', '华东办事处']
+        }
+      ],
+      warnings: [
+        {
+          ruleId: 'NO_FLOATING_ENTITIES',
+          ruleName: '不允许游离实体',
+          message: '发现 5 个游离实体（在三棵树中都不存在）',
+          level: 'WARN',
+          affectedEntities: ['临时项目公司A', '临时项目公司B', '临时项目公司C', '临时项目公司D', '临时项目公司E']
+        }
+      ]
+    }
+
+    ElMessage.success('健康检查完成')
+  }, 1000)
 }
 
 function viewDetails(category: string) {
@@ -545,6 +599,14 @@ function triggerReconciliation() {
     &.info .stat-value {
       color: #909399;
     }
+  }
+}
+
+.validation-section {
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
   }
 }
 
