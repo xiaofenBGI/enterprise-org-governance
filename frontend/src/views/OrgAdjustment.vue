@@ -1,9 +1,6 @@
 <!-- src/views/OrgAdjustment.vue -->
 
-<script setup lang="ts">
-// 在顶部导入
-import DiffViewer from '@/components/DiffViewer.vue'
-</script>
+
 
 <template>
   <div class="org-adjustment-page">
@@ -165,7 +162,7 @@ import DiffViewer from '@/components/DiffViewer.vue'
       </template>
     </el-dialog>
 
-    <!-- Diff 预览对话框 -->
+
 <!-- Diff 预览对话框 -->
 <el-dialog
   v-model="showPreviewDialog"
@@ -174,50 +171,11 @@ import DiffViewer from '@/components/DiffViewer.vue'
   :close-on-click-modal="false"
   @close="handlePreviewClose"
 >
+
+
   <div class="preview-container" v-if="diffPreview">
-    <!-- 校验结果 -->
-    <div class="validation-section" v-if="validationResult">
-      <h4>校验结果</h4>
-
-      <el-alert
-        v-if="validationResult.hasHardFailure"
-        title="存在硬规则失败，无法提交"
-        type="error"
-        :closable="false"
-      />
-      <el-alert
-        v-else-if="validationResult.issues.some(i => i.severity === 'WARN')"
-        title="存在警告，请确认后继续"
-        type="warning"
-        :closable="false"
-      />
-      <el-alert
-        v-else
-        title="校验通过"
-        type="success"
-        :closable="false"
-      />
-
-      <div class="issues-list" v-if="validationResult.issues.length > 0">
-        <div
-          v-for="issue in validationResult.issues"
-          :key="issue.ruleCode"
-          class="issue-item"
-          :class="`issue-${issue.severity.toLowerCase()}`"
-        >
-          <div class="issue-header">
-            <el-icon v-if="issue.severity === 'HARD'" color="#f56c6c"><CircleClose /></el-icon>
-            <el-icon v-else-if="issue.severity === 'WARN'" color="#e6a23c"><Warning /></el-icon>
-            <el-icon v-else color="#909399"><InfoFilled /></el-icon>
-            <span class="issue-title">{{ issue.ruleName }}</span>
-          </div>
-          <div class="issue-message">{{ issue.message }}</div>
-          <div class="issue-affected" v-if="issue.affectedOrgNames.length > 0">
-            涉及公司: {{ issue.affectedOrgNames.join(', ') }}
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 使用 ValidationResult 组件 -->
+    <ValidationResult :validation-result="validationResult" />
 
     <!-- 使用 DiffViewer 组件替换原有的 diff-section -->
     <DiffViewer
@@ -240,116 +198,81 @@ import DiffViewer from '@/components/DiffViewer.vue'
 </el-dialog>
 
 
-    <!-- 审批对话框 -->
-    <el-dialog
-      v-model="showApproveDialog"
-      title="审批变更申请"
-      width="80%"
-      :close-on-click-modal="false"
-    >
-      <div v-if="currentApprovalRequest">
-        <!-- 申请信息 -->
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="目标公司">
-            {{ currentApprovalRequest.targetOrgName }}
-          </el-descriptions-item>
-          <el-descriptions-item label="树类型">
-            <el-tag size="small">{{ TREE_TYPE_LABELS[currentApprovalRequest.treeType] }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="变更类型">
-            <el-tag :type="getOperationTypeTag(currentApprovalRequest.operationType)" size="small">
-              {{ getOperationTypeLabel(currentApprovalRequest.operationType) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="生效日期">
-            {{ currentApprovalRequest.effectiveDate }}
-          </el-descriptions-item>
-          <el-descriptions-item label="申请人">
-            {{ currentApprovalRequest.applicant }}
-          </el-descriptions-item>
-          <el-descriptions-item label="申请时间">
-            {{ currentApprovalRequest.appliedAt }}
-          </el-descriptions-item>
-          <el-descriptions-item label="变更原因" :span="2">
-            {{ currentApprovalRequest.reason }}
-          </el-descriptions-item>
-        </el-descriptions>
+<!-- 审批对话框 -->
+<el-dialog
+  v-model="showApproveDialog"
+  title="审批变更申请"
+  width="80%"
+  :close-on-click-modal="false"
+>
+  <div v-if="currentApprovalRequest">
+    <!-- 申请信息 -->
+    <el-descriptions :column="2" border>
+      <el-descriptions-item label="目标公司">
+        {{ currentApprovalRequest.targetOrgName }}
+      </el-descriptions-item>
+      <el-descriptions-item label="树类型">
+        <el-tag size="small">{{ TREE_TYPE_LABELS[currentApprovalRequest.treeType] }}</el-tag>
+      </el-descriptions-item>
+      <el-descriptions-item label="变更类型">
+        <el-tag :type="getOperationTypeTag(currentApprovalRequest.operationType)" size="small">
+          {{ getOperationTypeLabel(currentApprovalRequest.operationType) }}
+        </el-tag>
+      </el-descriptions-item>
+      <el-descriptions-item label="生效日期">
+        {{ currentApprovalRequest.effectiveDate }}
+      </el-descriptions-item>
+      <el-descriptions-item label="申请人">
+        {{ currentApprovalRequest.applicant }}
+      </el-descriptions-item>
+      <el-descriptions-item label="申请时间">
+        {{ currentApprovalRequest.appliedAt }}
+      </el-descriptions-item>
+      <el-descriptions-item label="变更原因" :span="2">
+        {{ currentApprovalRequest.reason }}
+      </el-descriptions-item>
+    </el-descriptions>
 
-        <!-- 重新校验 -->
-        <div class="approval-validation" style="margin-top: 20px;">
-          <h4>
-            实时校验结果
-            <el-button
-              size="small"
-              :icon="Refresh"
-              @click="revalidateApproval"
-              :loading="loadingApprovalValidation"
-              style="margin-left: 12px;"
-            >
-              重新校验
-            </el-button>
-          </h4>
-
-          <div v-if="approvalValidation" style="margin-top: 12px;">
-            <el-alert
-              v-if="approvalValidation.hasHardFailure"
-              title="存在硬规则失败，不建议通过"
-              type="error"
-              :closable="false"
-            />
-            <el-alert
-              v-else-if="approvalValidation.issues.some(i => i.severity === 'WARN')"
-              title="存在警告，请谨慎审批"
-              type="warning"
-              :closable="false"
-            />
-            <el-alert
-              v-else
-              title="校验通过"
-              type="success"
-              :closable="false"
-            />
-
-            <div class="issues-list" v-if="approvalValidation.issues.length > 0" style="margin-top: 12px;">
-              <div
-                v-for="issue in approvalValidation.issues"
-                :key="issue.ruleCode"
-                class="issue-item"
-                :class="`issue-${issue.severity.toLowerCase()}`"
-              >
-                <div class="issue-header">
-                  <el-icon v-if="issue.severity === 'HARD'" color="#f56c6c"><CircleClose /></el-icon>
-                  <el-icon v-else-if="issue.severity === 'WARN'" color="#e6a23c"><Warning /></el-icon>
-                  <el-icon v-else color="#909399"><InfoFilled /></el-icon>
-                  <span class="issue-title">{{ issue.ruleName }}</span>
-                </div>
-                <div class="issue-message">{{ issue.message }}</div>
-                <div class="issue-affected" v-if="issue.affectedOrgNames.length > 0">
-                  涉及公司: {{ issue.affectedOrgNames.join(', ') }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <!-- 实时校验结果 -->
+    <div class="approval-validation">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+        <h4 style="margin: 0;">实时校验结果</h4>
+        <el-button
+          size="small"
+          :icon="Refresh"
+          @click="revalidateApproval"
+          :loading="loadingApprovalValidation"
+        >
+          重新校验
+        </el-button>
       </div>
 
-      <template #footer>
-        <el-button @click="showApproveDialog = false">取消</el-button>
-        <el-button
-          type="danger"
-          @click="handleReject(currentApprovalRequest!)"
-        >
-          驳回
-        </el-button>
-        <el-button
-          type="primary"
-          @click="confirmApprove"
-          :disabled="approvalValidation?.hasHardFailure"
-        >
-          通过
-        </el-button>
-      </template>
-    </el-dialog>
+      <!-- ✅ 使用 ValidationResult 组件替换原来的内联代码 -->
+      <ValidationResult
+        :validation-result="approvalValidation"
+        :show-title="false"
+      />
+    </div>
+  </div>
+
+  <template #footer>
+    <el-button @click="showApproveDialog = false">取消</el-button>
+    <el-button
+      type="danger"
+      @click="handleReject(currentApprovalRequest!)"
+    >
+      驳回
+    </el-button>
+    <el-button
+      type="primary"
+      @click="confirmApprove"
+      :disabled="approvalValidation?.hasHardFailure"
+    >
+      通过
+    </el-button>
+  </template>
+</el-dialog>
+
 
     <!-- 驳回原因对话框 -->
     <el-dialog
@@ -377,19 +300,16 @@ import DiffViewer from '@/components/DiffViewer.vue'
   </div>
 </template>
 
+
 <script setup lang="ts">
+import ValidationResult from '@/components/ValidationResult.vue'
+import DiffViewer from '@/components/DiffViewer.vue'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import {
   Plus,
-  Refresh,
-  CircleClose,
-  Warning,
-  InfoFilled,
-  CirclePlus,
-  Remove,
-  Promotion
+  Refresh
 } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import { mockEntities, mockRelations } from '@/mock/orgData'
@@ -748,7 +668,6 @@ function confirmReject() {
 }
 </script>
 
-
 <!-- src/views/OrgAdjustment.vue 样式部分 -->
 <style scoped lang="scss">
 .org-adjustment-page {
@@ -771,8 +690,9 @@ function confirmReject() {
   .section-title {
     font-size: 16px;
     font-weight: 600;
-    color: var(--color-text-primary);
+    color: #1F2421;
     margin-bottom: 16px;
+    font-family: 'DM Serif Display', serif;
   }
 
   :deep(.el-table) {
@@ -784,123 +704,9 @@ function confirmReject() {
   display: flex;
   flex-direction: column;
   gap: 24px;
-
-  .validation-section,
-  .diff-section {
-    h4 {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--color-text-primary);
-      margin-bottom: 12px;
-    }
-  }
-
-  .issues-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-
-    .issue-item {
-      padding: 12px;
-      border-radius: 8px;
-      border-left: 4px solid;
-
-      &.issue-hard {
-        background: #fef0f0;
-        border-left-color: #f56c6c;
-      }
-
-      &.issue-warn {
-        background: #fdf6ec;
-        border-left-color: #e6a23c;
-      }
-
-      &.issue-info {
-        background: #f4f4f5;
-        border-left-color: #909399;
-      }
-
-      .issue-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-
-        .issue-title {
-          font-weight: 600;
-          font-size: 14px;
-        }
-      }
-
-      .issue-message {
-        font-size: 13px;
-        color: var(--color-text-secondary);
-        margin-bottom: 4px;
-      }
-
-      .issue-affected {
-        font-size: 12px;
-        color: var(--color-text-muted);
-      }
-    }
-  }
-
-  .diff-trees {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-
-    .diff-tree-wrapper {
-      h4 {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--color-text-primary);
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-        border-bottom: 2px solid var(--color-border-light);
-      }
-
-      .tree-node-label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        &.diff-added {
-          color: #67c23a;
-          font-weight: 600;
-        }
-
-        &.diff-removed {
-          color: #f56c6c;
-          font-weight: 600;
-          text-decoration: line-through;
-        }
-
-        &.diff-moved {
-          color: #e6a23c;
-          font-weight: 600;
-        }
-
-        .node-name {
-          font-size: 14px;
-        }
-
-        .node-code {
-          font-size: 12px;
-          color: var(--color-text-muted);
-        }
-      }
-    }
-  }
 }
 
 .approval-validation {
-  h4 {
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-  }
+  margin-top: 20px;
 }
 </style>
