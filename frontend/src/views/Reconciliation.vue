@@ -410,29 +410,27 @@ function runHealthCheck() {
   // Mock: 模拟调用校验引擎
   setTimeout(() => {
     validationResult.value = {
-      passed: false,
-      errors: [
+      hasHardFailure: true,
+      issues: [
         {
           ruleId: 'NO_ORPHAN_NODES',
           ruleName: '不允许孤悬节点',
           message: '发现 2 个孤悬节点',
-          level: 'HARD',
+          severity: 'HARD',
           affectedEntities: ['华南分公司', '东北办事处']
         },
         {
           ruleId: 'NO_TEMPORAL_GAP',
           ruleName: '时态连续性',
           message: '发现 3 处时态断裂',
-          level: 'HARD',
+          severity: 'HARD',
           affectedEntities: ['西南子公司', '华北分公司', '华东办事处']
-        }
-      ],
-      warnings: [
+        },
         {
           ruleId: 'NO_FLOATING_ENTITIES',
           ruleName: '不允许游离实体',
           message: '发现 5 个游离实体（在三棵树中都不存在）',
-          level: 'WARN',
+          severity: 'WARN',
           affectedEntities: ['临时项目公司A', '临时项目公司B', '临时项目公司C', '临时项目公司D', '临时项目公司E']
         }
       ]
