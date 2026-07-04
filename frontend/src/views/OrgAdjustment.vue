@@ -1,4 +1,10 @@
 <!-- src/views/OrgAdjustment.vue -->
+
+<script setup lang="ts">
+// 在顶部导入
+import DiffViewer from '@/components/DiffViewer.vue'
+</script>
+
 <template>
   <div class="org-adjustment-page">
     <!-- 顶部操作栏 -->
@@ -160,120 +166,79 @@
     </el-dialog>
 
     <!-- Diff 预览对话框 -->
-    <el-dialog
-      v-model="showPreviewDialog"
-      title="变更预览"
-      width="90%"
-      :close-on-click-modal="false"
-      @close="handlePreviewClose"
-    >
-      <div class="preview-container" v-if="diffPreview">
-        <!-- 校验结果 -->
-        <div class="validation-section" v-if="validationResult">
-          <h4>校验结果</h4>
+<!-- Diff 预览对话框 -->
+<el-dialog
+  v-model="showPreviewDialog"
+  title="变更预览"
+  width="90%"
+  :close-on-click-modal="false"
+  @close="handlePreviewClose"
+>
+  <div class="preview-container" v-if="diffPreview">
+    <!-- 校验结果 -->
+    <div class="validation-section" v-if="validationResult">
+      <h4>校验结果</h4>
 
-          <el-alert
-            v-if="validationResult.hasHardFailure"
-            title="存在硬规则失败，无法提交"
-            type="error"
-            :closable="false"
-          />
-          <el-alert
-            v-else-if="validationResult.issues.some(i => i.severity === 'WARN')"
-            title="存在警告，请确认后继续"
-            type="warning"
-            :closable="false"
-          />
-          <el-alert
-            v-else
-            title="校验通过"
-            type="success"
-            :closable="false"
-          />
+      <el-alert
+        v-if="validationResult.hasHardFailure"
+        title="存在硬规则失败，无法提交"
+        type="error"
+        :closable="false"
+      />
+      <el-alert
+        v-else-if="validationResult.issues.some(i => i.severity === 'WARN')"
+        title="存在警告，请确认后继续"
+        type="warning"
+        :closable="false"
+      />
+      <el-alert
+        v-else
+        title="校验通过"
+        type="success"
+        :closable="false"
+      />
 
-          <div class="issues-list" v-if="validationResult.issues.length > 0">
-            <div
-              v-for="issue in validationResult.issues"
-              :key="issue.ruleCode"
-              class="issue-item"
-              :class="`issue-${issue.severity.toLowerCase()}`"
-            >
-              <div class="issue-header">
-                <el-icon v-if="issue.severity === 'HARD'" color="#f56c6c"><CircleClose /></el-icon>
-                <el-icon v-else-if="issue.severity === 'WARN'" color="#e6a23c"><Warning /></el-icon>
-                <el-icon v-else color="#909399"><InfoFilled /></el-icon>
-                <span class="issue-title">{{ issue.ruleName }}</span>
-              </div>
-              <div class="issue-message">{{ issue.message }}</div>
-              <div class="issue-affected" v-if="issue.affectedOrgNames.length > 0">
-                涉及公司: {{ issue.affectedOrgNames.join(', ') }}
-              </div>
-            </div>
+      <div class="issues-list" v-if="validationResult.issues.length > 0">
+        <div
+          v-for="issue in validationResult.issues"
+          :key="issue.ruleCode"
+          class="issue-item"
+          :class="`issue-${issue.severity.toLowerCase()}`"
+        >
+          <div class="issue-header">
+            <el-icon v-if="issue.severity === 'HARD'" color="#f56c6c"><CircleClose /></el-icon>
+            <el-icon v-else-if="issue.severity === 'WARN'" color="#e6a23c"><Warning /></el-icon>
+            <el-icon v-else color="#909399"><InfoFilled /></el-icon>
+            <span class="issue-title">{{ issue.ruleName }}</span>
           </div>
-        </div>
-
-        <!-- Diff 树形对比 -->
-        <div class="diff-section">
-          <h4>树形态对比</h4>
-
-          <div class="diff-trees">
-            <div class="diff-tree-wrapper">
-              <h4>变更前</h4>
-              <el-tree
-                :data="diffPreview.before"
-                default-expand-all
-                node-key="id"
-              >
-                <template #default="{ node, data }">
-                  <span class="tree-node-label">
-                    <span class="node-name">{{ data.label }}</span>
-                    <span class="node-code">{{ data.orgCode }}</span>
-                  </span>
-                </template>
-              </el-tree>
-            </div>
-
-            <div class="diff-tree-wrapper">
-              <h4>变更后</h4>
-              <el-tree
-                :data="diffPreview.after"
-                default-expand-all
-                node-key="id"
-              >
-                <template #default="{ node, data }">
-                  <span
-                    class="tree-node-label"
-                    :class="{
-                      'diff-added': data.diffType === 'ADDED',
-                      'diff-removed': data.diffType === 'REMOVED',
-                      'diff-moved': data.diffType === 'MOVED'
-                    }"
-                  >
-                    <el-icon v-if="data.diffType === 'ADDED'" color="#67c23a"><CirclePlus /></el-icon>
-                    <el-icon v-else-if="data.diffType === 'REMOVED'" color="#f56c6c"><Remove /></el-icon>
-                    <el-icon v-else-if="data.diffType === 'MOVED'" color="#e6a23c"><Promotion /></el-icon>
-                    <span class="node-name">{{ data.label }}</span>
-                    <span class="node-code">{{ data.orgCode }}</span>
-                  </span>
-                </template>
-              </el-tree>
-            </div>
+          <div class="issue-message">{{ issue.message }}</div>
+          <div class="issue-affected" v-if="issue.affectedOrgNames.length > 0">
+            涉及公司: {{ issue.affectedOrgNames.join(', ') }}
           </div>
         </div>
       </div>
+    </div>
 
-      <template #footer>
-        <el-button @click="showPreviewDialog = false">取消</el-button>
-        <el-button
-          type="primary"
-          @click="handleSubmit"
-          :loading="loadingSubmit"
-          :disabled="validationResult?.hasHardFailure"
-        >
-          提交申请
-        </el-button>
-      </template>
-    </el-dialog>
+    <!-- 使用 DiffViewer 组件替换原有的 diff-section -->
+    <DiffViewer
+      :before-tree="diffPreview.before"
+      :after-tree="diffPreview.after"
+    />
+  </div>
+
+  <template #footer>
+    <el-button @click="showPreviewDialog = false">取消</el-button>
+    <el-button
+      type="primary"
+      @click="handleSubmit"
+      :loading="loadingSubmit"
+      :disabled="validationResult?.hasHardFailure"
+    >
+      提交申请
+    </el-button>
+  </template>
+</el-dialog>
+
 
     <!-- 审批对话框 -->
     <el-dialog

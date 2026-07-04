@@ -69,116 +69,145 @@ P1 功能：
 ✅ 监控对账 - 对账报告 + 差异处理
 ✅ 实体主数据 - 实体管理 + 树中位置查看
 
-## 待完成
-我们继续推进组织树项目。根据知识库中的设计文档，我建议按以下优先级推进：
+## # 📁 校验引擎规则模块 - 文件结构总览(2026-07-04)
 
-📋 接下来的实施计划
-P0 优先级（核心功能）
-1. 校验引擎（底座） ⭐ 建议先做
-这是整个平台的地基，会被组织调整、对账报告等多处复用。
+## ✅ 已实现的完整文件结构
 
-关键点：
+```
+frontend/src/utils/validation/rules/
+├── base/
+│   └── ValidationRule.ts                    # ✅ 已实现
+│       # 作用: 规则基类，定义统一接口和通用方法
+│       # 功能: 抽象类，提供 validate()、createIssue() 等模板方法
+│
+├── structural/                              # 结构规则（4条）
+│   ├── NoCycleRule.ts                       # ✅ 已实现
+│   │   # 作用: 无环检测规则
+│   │   # 功能: 使用 DFS 回溯检测树中是否存在环路
+│   │   # 严重等级: HARD（硬规则，阻塞提交）
+│   │
+│   ├── SingleParentRule.ts                  # ✅ 已实现
+│   │   # 作用: 单父节点规则
+│   │   # 功能: 确保每个节点在同一时刻只有一个父节点
+│   │   # 严重等级: HARD（硬规则，阻塞提交）
+│   │
+│   ├── NoOrphanRule.ts                      # ✅ 已实现
+│   │   # 作用: 孤悬节点检测
+│   │   # 功能: 检测无法回溯到根节点的孤悬节点
+│   │   # 严重等级: HARD（硬规则，阻塞提交）
+│   │
+│   └── MaxDepthRule.ts                      # ✅ 已实现
+│       # 作用: 最大层级限制
+│       # 功能: 防止树的层级过深（默认10层，可配置）
+│       # 严重等级: WARN（警告，可确认后继续）
+│
+├── temporal/                                # 时态规则（2条）
+│   ├── TemporalIntegrityRule.ts             # ✅ 已实现
+│   │   # 作用: 时态完整性检查
+│   │   # 功能: 确保父子关系的时间段连续无断裂
+│   │   # 严重等级: HARD（硬规则，阻塞提交）
+│   │   # 核心算法: 关键时点算法，检测时间段断裂
+│   │
+│   └── ParentCoversChildRule.ts             # ✅ 已实现
+│       # 作用: 父存在期覆盖子
+│       # 功能: 父节点存在期必须完全覆盖子节点存在期
+│       # 严重等级: HARD（硬规则，阻塞提交）
+│
+├── business/                                # 业务规则（3条）
+│   ├── EntityStatusRule.ts                  # ✅ 已实现
+│   │   # 作用: 实体状态规则
+│   │   # 功能: 注销/停用的公司不能作为父节点
+│   │   # 严重等级: HARD（硬规则，阻塞提交）
+│   │
+│   ├── FutureDateRule.ts                    # ✅ 已实现
+│   │   # 作用: 未来日期检查
+│   │   # 功能: 限制生效日期不能超过当前日期+N天
+│   │   # 严重等级: WARN（警告，可配置阈值）
+│   │
+│   └── CrossTreeConsistencyRule.ts          # ✅ 已实现
+│       # 作用: 跨树一致性检查
+│       # 功能: 法人树的父子关系在管理树中也应存在
+│       # 严重等级: INFO（信息提示，不阻塞）
+│
+├── RuleRegistry.ts                          # ✅ 已实现
+│   # 作用: 规则注册器（单例模式）
+│   # 功能: 统一管理所有规则，提供查询和过滤能力
+│   # 特性: 懒加载、可扩展、支持按分类/等级查询
+│
+└── index.ts                                 # ✅ 已实现
+    # 作用: 统一导出入口
+    # 功能: 导出所有规则类、接口、工具函数
+    # 使用: 外部通过此文件导入所有校验相关内容
+```
 
-规则接口设计（ValidationRule）
-上下文数据结构（ValidationContext、TreeSnapshot）
-引擎调度逻辑
-三条最难的规则实现：
-无环检测（NoCycleRule）
-时态完整性（TemporalIntegrityRule）
-父存在期覆盖子（ParentCoversChildRule）
-2. 组织调整的 Diff 预览
-依赖校验引擎，实现变更前后的对比视图和实时校验反馈。
+---
+### src/components/DiffViewer.vue 已完成（2026-07-04）
+DiffViewer.vue 组件实现了：
 
-3. 完善 Mock 数据
-补充更真实的时态关系数据，支持时光机演示。
+顶部统计面板 - 显示新增/移动/删除节点的数量
+左右树形对比 - 使用 el-tree 展示变更前后的树结构
+视觉标记 - 新增（绿色）、移动（琥珀色）、删除（红色）
+同步高亮 - 鼠标悬停时，左右树对应节点同步高亮
+温暖设计 - 纸质背景 #F6F1E8、琥珀色强调 #C8853F
+## 📊 实现统计
 
-具体方案选择
-根据文档，先在前端实现校验引擎原型
+### 按分类统计
+- **结构规则（Structural）**: 4条 ✅
+- **时态规则（Temporal）**: 2条 ✅
+- **业务规则（Business）**: 3条 ✅
 
-用 TypeScript 实现核心校验逻辑
-在前端的 diff 预览中直接调用
-验证算法正确性后再迁移到后端
+### 按严重等级统计
+- **HARD（硬规则）**: 6条 - 阻塞提交
+- **WARN（警告）**: 2条 - 可确认后继续
+- **INFO（提示）**: 1条 - 仅信息展示
 
-理由：
+### 文件总数
+- **规则实现**: 9个文件
+- **基础设施**: 2个文件（base + registry）
+- **导出入口**: 1个文件
+- **总计**: **12个文件** ✅
 
-快速验证：前端实现更快，可以立即在 UI 中看到效果
-易于演示：不需要启动后端服务就能展示核心逻辑
-逻辑可复用：TypeScript 和 Java 的算法逻辑是通用的
+---
 
-frontend/src/utils/validation/        # 前端也能用的校验逻辑
-├── engine/
-│   ├── ValidationEngine.ts           # 引擎核心
-│   ├── ValidationContext.ts          # 上下文数据结构
-│   └── ValidationResult.ts           # 结果和 Issue
-├── rules/
-│   ├── base/
-│   │   └── ValidationRule.ts         # 规则接口
-│   ├── structural/                   # 结构规则
-│   │   ├── NoCycleRule.ts           # 无环检测 ⭐
-│   │   ├── SingleParentRule.ts      # 单父节点
-│   │   ├── MaxDepthRule.ts          # 最大层级
-│   │   └── NoOrphanRule.ts          # 孤悬节点
-│   ├── temporal/                     # 时态规则
-│   │   ├── TemporalIntegrityRule.ts # 时态完整性 ⭐
-│   │   ├── ParentCoversChildRule.ts # 父覆盖子 ⭐
-│   │   └── NoOverlapRule.ts         # 无重叠父节点
-│   └── business/                     # 软规则（可配置）
-│       ├── ReasonableDepthRule.ts   # 层级合理性
-│       └── CancelSyncRule.ts        # 注销联动提醒
-└── snapshot/
-    ├── TreeSnapshot.ts               # 树快照
-    └── SnapshotBuilder.ts            # 快照构建器
+## 🎯 核心亮点
 
-backend/src/validation/               # 后端可以直接引用上面的代码
-└── index.ts                          # 导出给 API 使用
+1. **策略模式** - 每条规则独立封装，可灵活组合
+2. **单例模式** - 规则注册器全局唯一，避免重复创建
+3. **模板方法** - 基类提供通用方法，子类专注核心逻辑
+4. **可配置** - 规则级别、开关、阈值全部可从字典读取
+5. **高性能** - 关键时点算法、DFS 回溯、预计算索引
+---
+## 🔗 与已有模块的关系
+这些规则会被以下已完成模块调用：
+- ✅ **OrgAdjustment.vue**（组织调整）- 提交变更时调用校验
+- ✅ **Reconciliation.vue**（监控对账）- 对账报告中调用健康检查
+- ✅ **EntityMaster.vue**（实体主数据）- 状态校验
+## 待完成  实现的组件 ValidationResult.vue
+alidationResult.vue 组件会被以下模块调用
+1. OrgAdjustment.vue（组织调整）✅ 已存在
+调用场景: 提交变更时显示校验结果
+当前状态: 已经在 Diff 预览对话框中内联实现了校验结果展示
+影响: 可以提取成独立组件，复用代码
+2. Reconciliation.vue（监控对账）✅ 已存在
+调用场景: 对账报告中显示健康检查结果
+当前状态: 需要补充校验结果展示
+影响: 需要导入并使用 ValidationResult.vue
+3. EntityMaster.vue（实体主数据）✅ 已存在
+调用场景: 实体状态校验结果展示
+当前状态: 需要补充校验结果展示
+影响: 需要导入并使用 ValidationResult.vue
+实施步骤
+第一步：创建 ValidationResult.vue 组件
+从 OrgAdjustment.vue 中提取校验结果展示逻辑
+封装成独立、可复用的组件
+第二步：重构 OrgAdjustment.vue
+删除内联的校验结果代码
+改用 <ValidationResult :validation-result="validationResult" />
+第三步：补充 Reconciliation.vue
+在对账报告中导入并使用 ValidationResult.vue
+第四步：补充 EntityMaster.vue
+在实体状态校验中导入并使用 ValidationResult.vue
 
-实施步骤（按优先级）
-第一步：核心数据结构（1-2小时）
-实现：
-
-TreeSnapshot - 树快照（某棵树在某天的状态）
-ValidationContext - 校验上下文（装载变更前后快照、配置）
-ValidationResult & Issue - 校验结果和问题
-第二步：引擎调度（30分钟）
-实现：
-
-ValidationEngine - 遍历所有规则，收集问题
-规则开关和级别配置（从前端 mock 配置读取）
-第三步：三条最难的规则（4-6小时） ⭐
-实现：
-
-NoCycleRule - 无环检测（DFS 回溯）
-TemporalIntegrityRule - 时态完整性（关键时点算法）
-ParentCoversChildRule - 父存在期覆盖子
-第四步：其他基础规则（2-3小时）
-实现：
-
-SingleParentRule - 单父节点
-MaxDepthRule - 最大层级
-NoOrphanRule - 孤悬节点
-第五步：前端集成（2小时）
-在组织调整页面的 diff 预览中调用校验引擎，实时显示问题。
-
-💡 我的建议
-推荐方案：先在前端实现 TypeScript 版校验引擎
-
-理由：
-
-✅ 快速验证 - 不需要启动后端，直接在浏览器里看效果
-✅ 易于调试 - Vue DevTools 可以实时查看校验结果
-✅ 前后端复用 - 后端只需要 import 前端的代码
-✅ 演示友好 - MVP 演示时无需数据库，用 mock 数据就能展示核心逻辑
-后续扩展：
-
-当需要大数据量对账时，再把引擎移到后端 API
-Prisma 查询结果可以直接转换成 TreeSnapshot 喂给引擎
-
-建议立即开始实现核心数据结构和引擎框架
-
-创建完整的校验引擎骨架代码 - 所有接口、类型定义、引擎调度逻辑
-实现三条最难的规则 - NoCycleRule、TemporalIntegrityRule、ParentCoversChildRule
-写单元测试 - 针对成环、时态断裂等场景构造测试用例
-集成到组织调整页面 - 在 diff 预览中实时显示校验结果
 
 
 ## 关键约定
