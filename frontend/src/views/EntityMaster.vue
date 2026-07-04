@@ -455,14 +455,13 @@ async function handleSave() {
     // 模拟校验：新增的临时实体会产生"游离实体"警告
     if (editMode.value === 'add') {
       editValidationResult.value = {
-        passed: false,
-        errors: [],
-        warnings: [
+        hasHardFailure: false,
+        issues: [
           {
             ruleId: 'NO_FLOATING_ENTITIES',
             ruleName: '不允许游离实体',
             message: `实体"${editForm.orgName}"尚未挂入任何组织树`,
-            level: 'WARN',
+            severity: 'WARN',
             affectedEntities: [editForm.orgName]
           }
         ]
@@ -572,14 +571,13 @@ function validateEntity() {
     if (positions.length === 0) {
       // 游离实体
       entityValidationResult.value = {
-        passed: false,
-        errors: [],
-        warnings: [
+        hasHardFailure: false,
+        issues: [
           {
             ruleId: 'NO_FLOATING_ENTITIES',
             ruleName: '不允许游离实体',
             message: `实体"${currentEntity.value!.orgName}"在三棵组织树中都不存在`,
-            level: 'WARN',
+            severity: 'WARN',
             affectedEntities: [currentEntity.value!.orgName]
           }
         ]
@@ -587,14 +585,13 @@ function validateEntity() {
     } else if (positions.length < 3) {
       // 部分树缺失（提示）
       entityValidationResult.value = {
-        passed: true,
-        errors: [],
-        warnings: [
+        hasHardFailure: false,
+        issues: [
           {
             ruleId: 'TREE_UNIQUE',
             ruleName: '单树独有实体',
             message: `实体"${currentEntity.value!.orgName}"仅存在于 ${positions.length} 棵树中`,
-            level: 'INFO',
+            severity: 'INFO',
             affectedEntities: [currentEntity.value!.orgName]
           }
         ]
@@ -602,9 +599,8 @@ function validateEntity() {
     } else {
       // 健康实体
       entityValidationResult.value = {
-        passed: true,
-        errors: [],
-        warnings: []
+        hasHardFailure: false,
+        issues: []
       }
     }
 
