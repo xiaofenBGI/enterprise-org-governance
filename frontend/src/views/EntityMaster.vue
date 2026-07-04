@@ -193,6 +193,11 @@
           :closable="false"
           style="margin-bottom: 16px"
         />
+
+        <!-- 校验结果展示 -->
+        <div v-if="editValidationResult" style="margin-top: 16px">
+          <ValidationResult :validation-result="editValidationResult" />
+        </div>
       </el-form>
 
       <template #footer>
@@ -204,7 +209,7 @@
     </el-dialog>
 
     <!-- 详情对话框 -->
-    <el-dialog v-model="showDetailDialog" title="实体详情" width="800px">
+    <el-dialog v-model="showDetailDialog" title="实体详情" width="900px">
       <div v-if="currentEntity">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="公司编码">
@@ -253,7 +258,17 @@
 
         <!-- 在各树中的位置 -->
         <div class="tree-positions">
-          <h4>在各树中的位置</h4>
+          <div class="section-header">
+            <h4>在各树中的位置</h4>
+            <el-button
+              size="small"
+              type="primary"
+              @click="validateEntity"
+              :loading="validating"
+            >
+              运行实体校验
+            </el-button>
+          </div>
 
           <el-empty
             v-if="treePositions.length === 0"
@@ -274,6 +289,12 @@
             <el-table-column prop="expiryDate" label="失效日期" width="110" />
           </el-table>
         </div>
+
+        <!-- 实体健康检查结果 -->
+        <div v-if="entityValidationResult" class="validation-section">
+          <h4>实体健康检查</h4>
+          <ValidationResult :validation-result="entityValidationResult" />
+        </div>
       </div>
     </el-dialog>
   </div>
@@ -288,8 +309,9 @@ import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import isBetween from 'dayjs/plugin/isBetween'
 import { mockEntities, mockRelations } from '@/mock/orgData'
-import type { OrgEntity, TreeType } from '@/types'
+import type { OrgEntity, TreeType, ValidationResultType } from '@/types'
 import { TREE_TYPE_LABELS } from '@/types'
+import ValidationResult from '@/components/ValidationResult.vue'
 
 dayjs.extend(isBetween)
 
@@ -297,11 +319,16 @@ const router = useRouter()
 
 const loading = ref(false)
 const saving = ref(false)
+const validating = ref(false)
 const showEditDialog = ref(false)
 const showDetailDialog = ref(false)
 const editMode = ref<'add' | 'edit'>('add')
 
 const editFormRef = ref<FormInstance>()
+
+// 校验结果
+const editValidationResult = ref<ValidationResultType | null>(null)
+const entityValidationResult = ref<ValidationResultType | null>(null)
 
 const searchForm = reactive({
   keyword: '',
@@ -387,6 +414,7 @@ function handleReset() {
 
 function handleAdd() {
   editMode.value = 'add'
+  editValidationResult.value = null
   Object.assign(editForm, {
     id: '',
     orgCode: '',
@@ -403,6 +431,7 @@ function handleAdd() {
 
 function handleEdit(entity: OrgEntity) {
   editMode.value = 'edit'
+  editValidationResult.value = null
   Object.assign(editForm, {
     ...entity,
     establishDate: entity.establishDate || ''
@@ -410,6 +439,9 @@ function handleEdit(entity: OrgEntity) {
   showEditDialog.value = true
 }
 
+/**
+ * 保存实体（带校验）
+ */
 async function handleSave() {
   if (!editFormRef.value) return
 
@@ -418,17 +450,53 @@ async function handleSave() {
 
   saving.value = true
 
-  // Mock: 保存实体
+  // Mock: 调用校验引擎检查实体状态
   setTimeout(() => {
+    // 模拟校验：新增的临时实体会产生"游离实体"警告
     if (editMode.value === 'add') {
-      ElMessage.success('临时实体创建成功，请在组织调整中将其挂入树中')
-    } else {
-      ElMessage.success('实体信息更新成功')
-    }
+      editValidationResult.value = {
+        passed: false,
+        errors: [],
+        warnings: [
+          {
+            ruleId: 'NO_FLOATING_ENTITIES',
+            ruleName: '不允许游离实体',
+            message: `实体"${editForm.orgName}"尚未挂入任何组织树`,
+            level: 'WARN',
+            affectedEntities: [editForm.orgName]
+          }
+        ]
+      }
 
-    saving.value = false
-    showEditDialog.value = false
-    handleSearch()
+      saving.value = false
+
+      // 允许用户确认后继续
+      ElMessageBox.confirm(
+        '检测到校验警告：该实体尚未挂入任何组织树，请在"组织调整"中将其挂入树中。是否继续保存？',
+        '校验警告',
+        {
+          confirmButtonText: '继续保存',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+        .then(() => {
+          ElMessage.success('临时实体创建成功，请在组织调整中将其挂入树中')
+          showEditDialog.value = false
+          editValidationResult.value = null
+          handleSearch()
+        })
+        .catch(() => {
+          // 用户取消
+        })
+    } else {
+      // 编辑模式：直接保存
+      ElMessage.success('实体信息更新成功')
+      saving.value = false
+      showEditDialog.value = false
+      editValidationResult.value = null
+      handleSearch()
+    }
   }, 800)
 }
 
@@ -453,6 +521,7 @@ function handleDelete(entity: OrgEntity) {
 
 function handleRowClick(entity: OrgEntity) {
   currentEntity.value = entity
+  entityValidationResult.value = null
   loadTreePositions(entity.id)
   showDetailDialog.value = true
 }
@@ -485,6 +554,63 @@ function loadTreePositions(entityId: string) {
   })
 
   treePositions.value = positions
+}
+
+/**
+ * 运行实体校验
+ */
+function validateEntity() {
+  if (!currentEntity.value) return
+
+  validating.value = true
+  ElMessage.info('正在校验实体状态...')
+
+  // Mock: 调用校验引擎
+  setTimeout(() => {
+    const positions = treePositions.value
+
+    if (positions.length === 0) {
+      // 游离实体
+      entityValidationResult.value = {
+        passed: false,
+        errors: [],
+        warnings: [
+          {
+            ruleId: 'NO_FLOATING_ENTITIES',
+            ruleName: '不允许游离实体',
+            message: `实体"${currentEntity.value!.orgName}"在三棵组织树中都不存在`,
+            level: 'WARN',
+            affectedEntities: [currentEntity.value!.orgName]
+          }
+        ]
+      }
+    } else if (positions.length < 3) {
+      // 部分树缺失（提示）
+      entityValidationResult.value = {
+        passed: true,
+        errors: [],
+        warnings: [
+          {
+            ruleId: 'TREE_UNIQUE',
+            ruleName: '单树独有实体',
+            message: `实体"${currentEntity.value!.orgName}"仅存在于 ${positions.length} 棵树中`,
+            level: 'INFO',
+            affectedEntities: [currentEntity.value!.orgName]
+          }
+        ]
+      }
+    } else {
+      // 健康实体
+      entityValidationResult.value = {
+        passed: true,
+        errors: [],
+        warnings: []
+      }
+    }
+
+    validating.value = false
+    ElMessage.success('实体校验完成')
+  }, 1000)
 }
 
 function viewInTrees(entity: OrgEntity) {
@@ -520,6 +646,24 @@ function viewInTrees(entity: OrgEntity) {
 }
 
 .tree-positions {
+  margin-top: 24px;
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin: 0;
+    }
+  }
+}
+
+.validation-section {
   margin-top: 24px;
 
   h4 {
