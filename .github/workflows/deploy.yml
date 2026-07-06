@@ -27,17 +27,21 @@ jobs:
         with:
           node-version: 20 # 指定 Node 版本
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          # 【修改点】这里去掉了 frontend/ 前缀
+          cache-dependency-path: package-lock.json
+
       - name: Install dependencies
         run: npm install
         working-directory: frontend # 在 frontend 目录下安装依赖
+
       - name: Build
         run: npm run build
         working-directory: frontend # 在 frontend 目录下打包
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-                path: frontend/dist # 指定打包输出的文件夹
+          path: frontend/dist # 指定打包输出的文件夹
 
   deploy:
     environment:
