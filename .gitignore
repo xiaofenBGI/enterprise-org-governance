@@ -47,4 +47,3 @@ ENV/
 *.tmp
 .cache/
 .DS_Store
-dist
